@@ -462,7 +462,7 @@ const PLANILHA = 'HUB_PROGRAMAS.xlsx';
 /* LINK DA PLANILHA NO GOOGLE SHEETS — troque aqui se o link mudar.
    Compartilhamento exigido: "Qualquer pessoa com o link" (leitor).
    O hub baixa a planilha inteira em .xlsx (todas as abas) a cada abertura.      */
-const ONEDRIVE_URL = 'https://docs.google.com/spreadsheets/d/1Lnk8jd9GOn40ZzILGyXDjfoNdVNSPdI3rxS1Cw7v3CU/edit?usp=sharing';
+const ONEDRIVE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSaAiIpKZzpDR1GO9wEiOGKMvF9dq0-fWZxqJbEia3z-PyWtf4pPYVaTekEncE-dyer4bn7VzibDedR/pub?output=xlsx';
 function candidatosOneDrive(u){
   if(!u) return [];
   const g=u.match(/docs\.google\.com\/spreadsheets\/d\/(e\/)?([\w-]+)/);
@@ -713,9 +713,13 @@ function vCarregar(){
       <button class="btn" onclick="liberarVinculo()">Carregar ${esc(vinculoPendente.name)}</button>
       <button class="btn" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)" onclick="abrirSeletor()">Vincular outro arquivo</button>
     </div>`:`
-    <h2>Vincule a planilha do hub</h2>
-    <p>Selecione o <b>HUB_PROGRAMAS.xlsx</b> na pasta do OneDrive sincronizada no seu computador.<br>
-    ${SUPORTA_VINCULO?'Basta fazer isso uma vez: nas próximas aberturas o hub lê sozinho a versão mais recente.':'Este navegador não guarda o vínculo; use o Edge ou o Chrome para leitura automática.'}</p>
+    <h2>${ONEDRIVE_URL?'Não foi possível ler o Google Sheets':'Abra a planilha do hub'}</h2>
+    ${ONEDRIVE_URL&&!/\/spreadsheets\/d\/e\//.test(ONEDRIVE_URL)?`<p style="text-align:left">A Google só libera a leitura por outro site quando a planilha está <b>publicada na Web</b>:<br>
+    1. No Google Sheets: <b>Arquivo → Compartilhar → Publicar na Web</b><br>
+    2. Escolha <b>Documento inteiro</b> e o formato <b>Microsoft Excel (.xlsx)</b> → Publicar<br>
+    3. Copie o link gerado e coloque na linha <b>const ONEDRIVE_URL</b> deste HTML</p>`:''}
+    <p>${ONEDRIVE_URL?'Enquanto isso, você pode abrir um <b>.xlsx</b> do computador.':'Selecione o <b>HUB_PROGRAMAS.xlsx</b> no seu computador.'}<br>
+    ${SUPORTA_VINCULO?'O vínculo fica salvo: nas próximas aberturas o hub relê sozinho a versão mais recente do arquivo.':''}</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
       <button class="btn" onclick="abrirSeletor()">Selecionar planilha</button>
       ${ONEDRIVE_URL?'<button class="btn" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)" onclick="tentarNovamente()">Tentar o Google Sheets de novo</button>':''}
@@ -1088,7 +1092,7 @@ async function tentarOneDrive(){
       if(buf[0]!==0x50||buf[1]!==0x4B) throw new Error('o Google devolveu uma página de login — a planilha não está aberta para qualquer pessoa com o link');
       usarPlanilha(buf,'onedrive','HUB_PROGRAMAS');
       return true;
-    }catch(e){ diagSharePoint=(e.name==='TypeError'?'leitura recusada — confira se a planilha está compartilhada como “Qualquer pessoa com o link”':e.name==='AbortError'?'sem resposta em 8 s':e.message); console.warn('[hub] SharePoint:',e); }
+    }catch(e){ diagSharePoint=(e.name==='TypeError'?(/\/spreadsheets\/d\/e\//.test(ONEDRIVE_URL)?'leitura recusada — confira se a publicação na Web está ativa para o documento inteiro':'leitura bloqueada: o link de edição não libera leitura por outro site'):e.name==='AbortError'?'sem resposta em 8 s':e.message); console.warn('[hub] SharePoint:',e); }
   }
   return false;
 }
