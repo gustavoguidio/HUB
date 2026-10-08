@@ -12,7 +12,7 @@
     · cada outra aba    → um projeto (abas iniciadas com "_" ou ocultas são ignoradas)
     · dentro da aba     → seções VISÃO GERAL, ESCOPO, GOVERNANÇA, MATRIZ RACI,
                           TESTES, TREINAMENTOS, APROVAÇÕES e PENDÊNCIAS
-  Ordem de leitura: 1) link do SharePoint (ONEDRIVE_URL) — só funciona se o site tiver permissão (CORS)
+  Ordem de leitura: 1) link do OneDrive (ONEDRIVE_URL)
                     2) planilha no mesmo endereço do HTML (PLANILHA)
                     3) planilha vinculada no computador (pasta do OneDrive sincronizada)
                     4) retrato publicado, embutido no final deste arquivo
@@ -459,17 +459,19 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    Funciona quando o HTML está publicado num servidor/site junto da planilha.
    Aberto direto do computador (duplo clique), o hub usa o retrato embutido.  */
 const PLANILHA = 'HUB_PROGRAMAS.xlsx';
-/* Link de compartilhamento do SharePoint/OneDrive corporativo (mydrive.metlife.com).
-   Tentado só se a planilha local (acima) não responder. Só funciona se:
-     a) este HTML estiver hospedado no mesmo site do SharePoint (mesma origem — sem bloqueio de CORS), e
-     b) a pessoa já estiver autenticada (SSO) nesse navegador.
-   Fora disso, o navegador bloqueia (CORS ou redirecionamento de login) e o hub cai
-   automaticamente para o retrato publicado / seleção manual do arquivo.            */
-const ONEDRIVE_URL = 'https://mydrive.metlife.com/:x:/g/personal/gustavo_g_marinho_metlife_com/IQBeWbf2TCOuSZTIBnQ-LMRSAfBAkOqEAmFWOuUI3QDzhNE?e=ed5SgP';
+/* LINK DA PLANILHA NO ONEDRIVE — troque aqui se o link mudar.
+   O link precisa estar compartilhado como "Qualquer pessoa com o link pode exibir".
+   O hub tenta ler o arquivo direto por duas rotas da Microsoft; se ela recusar,
+   cai para a planilha vinculada no computador / retrato publicado.               */
+const ONEDRIVE_URL = 'https://1drv.ms/x/c/41098a9a47ecc83d/IQAFSjp0lZGGQIhoB9zuMEW1ARfVjuT6aCuhep3HMO7RvBA?e=1tsbHh';
 function candidatosOneDrive(u){
   if(!u) return [];
+  const id='u!'+btoa(unescape(encodeURIComponent(u))).replace(/=+$/,'').replace(/\//g,'_').replace(/\+/g,'-');
   const sep=u.includes('?')?'&':'?';
-  return [u+sep+'download=1'];           /* força o SharePoint a responder com os bytes do arquivo, não a página de visualização */
+  return [
+    {url:'https://api.onedrive.com/v1.0/shares/'+id+'/root/content', cred:'omit'},   /* API pública de compartilhamento */
+    {url:u+sep+'download=1', cred:'omit'}                                            /* link direto forçando download */
+  ];
 }
 const LOGOS = { claro: '', escuro: '' };   /* logos do rodapé (data URI) — vazio mostra "MetLife Brasil" */
 
@@ -693,7 +695,7 @@ function renderCrumb(){
 function renderFonte(){
   document.getElementById('refSemana').innerHTML=iso(cfg.semanaReferencia)?'Semana de <b>'+dataBR(cfg.semanaReferencia)+'</b>':'';
   document.getElementById('railAtualizado').textContent=iso(cfg.atualizadoEm)?'Atualizado em '+dataBR(cfg.atualizadoEm):'';
-  const t={planilha:'Lendo <b>'+esc(fonte.nome)+'</b>',onedrive:'Lendo do SharePoint: <b>'+esc(fonte.nome)+'</b>',vinculada:'Planilha vinculada: <b>'+esc(fonte.nome)+'</b>'+(fonte.em?'<br>salva em '+esc(fonte.em):''),arquivo:'Planilha aberta: <b>'+esc(fonte.nome)+'</b>',retrato:'Retrato publicado de <b>'+esc(fonte.nome)+'</b>'+(fonte.em?' em '+esc(fonte.em):'')}[fonte.tipo]||'';
+  const t={planilha:'Lendo <b>'+esc(fonte.nome)+'</b>',onedrive:'Lendo do OneDrive: <b>'+esc(fonte.nome)+'</b>',vinculada:'Planilha vinculada: <b>'+esc(fonte.nome)+'</b>'+(fonte.em?'<br>salva em '+esc(fonte.em):''),arquivo:'Planilha aberta: <b>'+esc(fonte.nome)+'</b>',retrato:'Retrato publicado de <b>'+esc(fonte.nome)+'</b>'+(fonte.em?' em '+esc(fonte.em):'')}[fonte.tipo]||'';
   document.getElementById('srcNote').innerHTML=t;
   document.getElementById('btnPublicar').hidden=!['arquivo','vinculada'].includes(fonte.tipo);
 }
@@ -717,9 +719,9 @@ function vCarregar(){
     ${SUPORTA_VINCULO?'Basta fazer isso uma vez: nas próximas aberturas o hub lê sozinho a versão mais recente.':'Este navegador não guarda o vínculo; use o Edge ou o Chrome para leitura automática.'}</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
       <button class="btn" onclick="abrirSeletor()">Selecionar planilha</button>
-      ${ONEDRIVE_URL?'<button class="btn" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)" onclick="tentarNovamente()">Tentar o link do SharePoint de novo</button>':''}
+      ${ONEDRIVE_URL?'<button class="btn" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)" onclick="tentarNovamente()">Tentar o link do OneDrive de novo</button>':''}
     </div>`}
-    ${diagSharePoint?'<p style="margin:18px 0 0;color:var(--ink-3);font-size:12px">Link do SharePoint: '+esc(diagSharePoint)+'.</p>':''}
+    ${diagSharePoint?'<p style="margin:18px 0 0;color:var(--ink-3);font-size:12px">Link do OneDrive: '+esc(diagSharePoint)+'.</p>':''}
     ${errosDados.length?'<p style="margin:12px 0 0;color:var(--red);font-size:12.5px;text-align:left">'+errosDados.map(esc).join('<br>')+'</p>':''}
   </div></div>`;
 }
@@ -1079,15 +1081,15 @@ async function abrirSeletor(){
 let diagSharePoint='';
 function comPrazo(ms){ const c=new AbortController(); setTimeout(()=>c.abort(),ms); return c.signal; }
 async function tentarOneDrive(){
-  for(const u of candidatosOneDrive(ONEDRIVE_URL)){
+  for(const {url:u,cred} of candidatosOneDrive(ONEDRIVE_URL)){
     try{
-      const r=await fetch(u,{credentials:'include',mode:'cors',cache:'no-store',signal:comPrazo(8000)});
+      const r=await fetch(u,{credentials:cred,mode:'cors',cache:'no-store',signal:comPrazo(8000)});
       if(!r.ok) throw new Error('HTTP '+r.status);
       const buf=new Uint8Array(await r.arrayBuffer());
       if(buf[0]!==0x50||buf[1]!==0x4B) throw new Error('o SharePoint devolveu uma página (login ou visualização), não o arquivo');
       usarPlanilha(buf,'onedrive','HUB_PROGRAMAS.xlsx');
       return true;
-    }catch(e){ diagSharePoint=(e.name==='TypeError'?'bloqueado pelo navegador (CORS) — o SharePoint não autoriza leitura a partir deste site':e.name==='AbortError'?'sem resposta em 8 s':e.message); console.warn('[hub] SharePoint:',e); }
+    }catch(e){ diagSharePoint=(e.name==='TypeError'?'a Microsoft não liberou a leitura direta (bloqueio do navegador) — confira se o link está como “Qualquer pessoa com o link”':e.name==='AbortError'?'sem resposta em 8 s':e.message); console.warn('[hub] SharePoint:',e); }
   }
   return false;
 }
