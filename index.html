@@ -12,7 +12,7 @@
     · cada outra aba    → um projeto (abas iniciadas com "_" ou ocultas são ignoradas)
     · dentro da aba     → seções VISÃO GERAL, ESCOPO, GOVERNANÇA, MATRIZ RACI,
                           TESTES, TREINAMENTOS, APROVAÇÕES e PENDÊNCIAS
-  Ordem de leitura: 1) link do OneDrive (ONEDRIVE_URL)
+  Ordem de leitura: 1) Google Sheets (ONEDRIVE_URL) — mesmo modelo do painel de finanças
                     2) planilha no mesmo endereço do HTML (PLANILHA)
                     3) planilha vinculada no computador (pasta do OneDrive sincronizada)
                     4) retrato publicado, embutido no final deste arquivo
@@ -459,20 +459,19 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    Funciona quando o HTML está publicado num servidor/site junto da planilha.
    Aberto direto do computador (duplo clique), o hub usa o retrato embutido.  */
 const PLANILHA = 'HUB_PROGRAMAS.xlsx';
-/* LINK DA PLANILHA NO ONEDRIVE — troque aqui se o link mudar.
-   O link precisa estar compartilhado como "Qualquer pessoa com o link pode exibir".
-   O hub tenta ler o arquivo direto por duas rotas da Microsoft; se ela recusar,
-   cai para a planilha vinculada no computador / retrato publicado.               */
-const ONEDRIVE_URL = 'https://1drv.ms/x/c/41098a9a47ecc83d/IQAFSjp0lZGGQIhoB9zuMEW1ARfVjuT6aCuhep3HMO7RvBA?e=1tsbHh';
+/* LINK DA PLANILHA NO GOOGLE SHEETS — troque aqui se o link mudar.
+   Compartilhamento exigido: "Qualquer pessoa com o link" (leitor).
+   O hub baixa a planilha inteira em .xlsx (todas as abas) a cada abertura.      */
+const ONEDRIVE_URL = 'https://docs.google.com/spreadsheets/d/1Lnk8jd9GOn40ZzILGyXDjfoNdVNSPdI3rxS1Cw7v3CU/edit?usp=sharing';
 function candidatosOneDrive(u){
   if(!u) return [];
-  const id='u!'+btoa(unescape(encodeURIComponent(u))).replace(/=+$/,'').replace(/\//g,'_').replace(/\+/g,'-');
+  const g=u.match(/docs\.google\.com\/spreadsheets\/d\/(e\/)?([\w-]+)/);
+  if(g&&g[1]) return [{url:'https://docs.google.com/spreadsheets/d/e/'+g[2]+'/pub?output=xlsx',cred:'omit'}];   /* link "Publicar na Web" */
+  if(g)       return [{url:'https://docs.google.com/spreadsheets/d/'+g[2]+'/export?format=xlsx',cred:'omit'}];
   const sep=u.includes('?')?'&':'?';
-  return [
-    {url:'https://api.onedrive.com/v1.0/shares/'+id+'/root/content', cred:'omit'},   /* API pública de compartilhamento */
-    {url:u+sep+'download=1', cred:'omit'}                                            /* link direto forçando download */
-  ];
+  return [{url:u+sep+'download=1',cred:'omit'}];
 }
+
 const LOGOS = { claro: '', escuro: '' };   /* logos do rodapé (data URI) — vazio mostra "MetLife Brasil" */
 
 const esc=s=>(s??'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -695,7 +694,7 @@ function renderCrumb(){
 function renderFonte(){
   document.getElementById('refSemana').innerHTML=iso(cfg.semanaReferencia)?'Semana de <b>'+dataBR(cfg.semanaReferencia)+'</b>':'';
   document.getElementById('railAtualizado').textContent=iso(cfg.atualizadoEm)?'Atualizado em '+dataBR(cfg.atualizadoEm):'';
-  const t={planilha:'Lendo <b>'+esc(fonte.nome)+'</b>',onedrive:'Lendo do OneDrive: <b>'+esc(fonte.nome)+'</b>',vinculada:'Planilha vinculada: <b>'+esc(fonte.nome)+'</b>'+(fonte.em?'<br>salva em '+esc(fonte.em):''),arquivo:'Planilha aberta: <b>'+esc(fonte.nome)+'</b>',retrato:'Retrato publicado de <b>'+esc(fonte.nome)+'</b>'+(fonte.em?' em '+esc(fonte.em):'')}[fonte.tipo]||'';
+  const t={planilha:'Lendo <b>'+esc(fonte.nome)+'</b>',onedrive:'Lendo do Google Sheets: <b>'+esc(fonte.nome)+'</b>',vinculada:'Planilha vinculada: <b>'+esc(fonte.nome)+'</b>'+(fonte.em?'<br>salva em '+esc(fonte.em):''),arquivo:'Planilha aberta: <b>'+esc(fonte.nome)+'</b>',retrato:'Retrato publicado de <b>'+esc(fonte.nome)+'</b>'+(fonte.em?' em '+esc(fonte.em):'')}[fonte.tipo]||'';
   document.getElementById('srcNote').innerHTML=t;
   document.getElementById('btnPublicar').hidden=!['arquivo','vinculada'].includes(fonte.tipo);
 }
@@ -719,9 +718,9 @@ function vCarregar(){
     ${SUPORTA_VINCULO?'Basta fazer isso uma vez: nas próximas aberturas o hub lê sozinho a versão mais recente.':'Este navegador não guarda o vínculo; use o Edge ou o Chrome para leitura automática.'}</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
       <button class="btn" onclick="abrirSeletor()">Selecionar planilha</button>
-      ${ONEDRIVE_URL?'<button class="btn" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)" onclick="tentarNovamente()">Tentar o link do OneDrive de novo</button>':''}
+      ${ONEDRIVE_URL?'<button class="btn" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)" onclick="tentarNovamente()">Tentar o Google Sheets de novo</button>':''}
     </div>`}
-    ${diagSharePoint?'<p style="margin:18px 0 0;color:var(--ink-3);font-size:12px">Link do OneDrive: '+esc(diagSharePoint)+'.</p>':''}
+    ${diagSharePoint?'<p style="margin:18px 0 0;color:var(--ink-3);font-size:12px">Google Sheets: '+esc(diagSharePoint)+'.</p>':''}
     ${errosDados.length?'<p style="margin:12px 0 0;color:var(--red);font-size:12.5px;text-align:left">'+errosDados.map(esc).join('<br>')+'</p>':''}
   </div></div>`;
 }
@@ -1086,10 +1085,10 @@ async function tentarOneDrive(){
       const r=await fetch(u,{credentials:cred,mode:'cors',cache:'no-store',signal:comPrazo(8000)});
       if(!r.ok) throw new Error('HTTP '+r.status);
       const buf=new Uint8Array(await r.arrayBuffer());
-      if(buf[0]!==0x50||buf[1]!==0x4B) throw new Error('o SharePoint devolveu uma página (login ou visualização), não o arquivo');
-      usarPlanilha(buf,'onedrive','HUB_PROGRAMAS.xlsx');
+      if(buf[0]!==0x50||buf[1]!==0x4B) throw new Error('o Google devolveu uma página de login — a planilha não está aberta para qualquer pessoa com o link');
+      usarPlanilha(buf,'onedrive','HUB_PROGRAMAS');
       return true;
-    }catch(e){ diagSharePoint=(e.name==='TypeError'?'a Microsoft não liberou a leitura direta (bloqueio do navegador) — confira se o link está como “Qualquer pessoa com o link”':e.name==='AbortError'?'sem resposta em 8 s':e.message); console.warn('[hub] SharePoint:',e); }
+    }catch(e){ diagSharePoint=(e.name==='TypeError'?'leitura recusada — confira se a planilha está compartilhada como “Qualquer pessoa com o link”':e.name==='AbortError'?'sem resposta em 8 s':e.message); console.warn('[hub] SharePoint:',e); }
   }
   return false;
 }
